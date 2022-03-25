@@ -429,3 +429,4 @@ FodyWeavers.xsd
 *.exe
 *.out
 *.app
+pdqcif/x64/Release/pdqcif.exe.recipe
