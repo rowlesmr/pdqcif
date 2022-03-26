@@ -3,28 +3,24 @@
 #include <chrono>
 #include "cif.h"
 
-
-
-   
-
+#include <tao/pegtl/contrib/trace.hpp>
 
 int main(int argc, char** argv)
 {
    auto start = std::chrono::high_resolution_clock::now();
-   pegtl::file_input in("C:\\data\\ideal.cif");
-   //pegtl::file_input in("C:\\data\\supershort.cif");
-
-   //pegtl::complete_trace< rules::cif>(in);
-   //pegtl::standard_trace< rules::cif >(in);
+   //pegtl::file_input in("C:\\data\\ideal.cif");
+   //pegtl::file_input in("C:\\data\\ian.cif");
+   pegtl::file_input in("C:\\data\\test.cif");
+  
 
    auto file_open = std::chrono::high_resolution_clock::now();
    cif::Cif cif{};
    try {
-      //pegtl::tracer< pegtl::tracer_traits< true, true, true > > tr(in);
+      //pegtl::complete_trace<cif::rules::file>(in);
+      //pegtl::standard_trace< cif::rules::cif >(in);
+     //pegtl::tracer< pegtl::tracer_traits< true, true, true > > tr(in);
       //tr.parse< rules::cif >(in);
-      cif.source = in.source();
-      pegtl::parse< ::cif::rules::cif, ::cif::rules::Action >(in, cif);
-      //cif = cif::read_input(in);
+      cif = cif::read_input(in);
    }
    catch (pegtl::parse_error& e) {
       const auto p = e.positions().front();

@@ -16,9 +16,14 @@
 #include <limits>
 #include <assert.h>
 
-#include "cif_rules.h"
+#include "tao/pegtl.hpp"
+#include "tao/pegtl/contrib/trace.hpp"
+namespace pegtl = tao::pegtl;
+
+
 
 namespace cif {
+
 
    struct ItemIndex {
       size_t item{SIZE_MAX}; 
@@ -75,7 +80,7 @@ namespace cif {
       bool has_tag(const std::string& t) const;
    };
 
-   struct LoopArg; // used only as arguments when creating Item
+   struct LoopArg {}; // used only as arguments when creating Item
 
    struct Item {
       std::variant<Pair, Loop> data;
@@ -122,14 +127,25 @@ namespace cif {
    void print(const Cif& cif, const bool block_name_only = false);
    
 
-   template<typename Input> void parse_input(Cif& d, Input&& in);
+#include "cif_rules.h"
 
-   template<typename Input> Cif read_input(Input&& in);
+
+ 
+   template<typename Input> void parse_input(Cif& d, Input&& in) {
+      pegtl::parse<rules::file, rules::Action>(in, d);
+   }
+
+   template<typename Input> Cif read_input(Input&& in) {
+      Cif cif;
+      cif.source = in.source();
+      parse_input(cif, in);
+      return cif;
+   }
 
 } //end namespace cif
 
 
-
+#if 0
 namespace cif::helper {
 
    //takes a string representing a number and gives two doubles containing the value and error. The function returns true.
@@ -137,6 +153,7 @@ namespace cif::helper {
    bool split_val_err(const std::string& ve, double& v, double& e);
    void split_val_err(const std::vector<std::string>& ves, std::vector<double>& v, std::vector<double>& e);
 }
+#endif
 
 
 #endif

@@ -134,7 +134,7 @@ namespace cif {
    * LoopArg
    *
    *************************************************************************************/
-   struct LoopArg {}; // used only as arguments when creating Item
+   //struct LoopArg {}; // used only as arguments when creating Item
 
    /************************************************************************************
    *
@@ -339,20 +339,10 @@ namespace cif {
       std::cout << "###############\n" << std::endl;
    }
 
-   template<typename Input> void parse_input(Cif& d, Input&& in) {
-      pegtl::parse< ::cif::rules::cif, ::cif::rules::Action >(in, d);
-   }
-
-   template<typename Input> Cif read_input(Input&& in) {
-      Cif cif;
-      cif.source = in.source();
-      parse_input(cif, in);
-      return cif;
-   }
 
 } //end namespace cif
 
-
+#if 0
 namespace cif::helper {
 
    //takes a string representing a number and gives two doubles containing the value and error. The function returns true.
@@ -397,5 +387,5 @@ namespace cif::helper {
       }
    }
 }
-
+#endif
 

@@ -57,9 +57,6 @@
     <ClCompile Include="src\cif_convert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\cif_rules.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\vendor\glm\detail\_features.hpp">
@@ -1517,13 +1514,13 @@
     <ClInclude Include="src\vendor\tao\pegtl.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\cif_rules.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\cif.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\cif_convert.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cif_rules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
