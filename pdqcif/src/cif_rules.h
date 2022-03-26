@@ -88,26 +88,27 @@ namespace rules {
    //DataItems         :	{ Tag WhiteSpace Value } | { LoopHeader WhiteSpace LoopBody }
    //LoopHeader        :  LOOP { WhiteSpace Tag }+
    //LoopBody          :  Value { WhiteSpace Value }*  , 
-   
-
-   struct missing_value : pegtl::bol {};
-   struct dataitem : pegtl::if_must<itemtag, whitespace, pegtl::if_then_else<itemvalue, ws_or_eof, missing_value>, pegtl::discard> {}; 
+   struct pair : pegtl::if_must<itemtag, whitespace, pegtl::if_then_else<itemvalue, ws_or_eof, TAO_PEGTL_RAISE_MESSAGE("Malformed or missing value.")>, pegtl::discard> {};
    struct blockframecode : pegtl::plus<nonblankchar> {};
 
    //loop
    struct loopend    : pegtl::opt<STOP, ws_or_eof> {};
    struct looptags   : pegtl::plus<pegtl::seq<looptag, whitespace, pegtl::discard>> {};
    struct loopvalues : pegtl::sor<pegtl::plus<pegtl::seq<loopvalue, ws_or_eof, pegtl::discard>>, /* handle incorrect CIF with empty loop -->*/ pegtl::at<pegtl::sor<reserved, pegtl::eof>>> {};
-   struct loop       : pegtl::if_must<LOOP, whitespace, looptags, loopvalues, loopend> {};
+   struct loopstart  : pegtl::seq<LOOP, whitespace> {};
+   struct loop       : pegtl::if_must<loopstart, looptags, loopvalues, loopend> {};
+
+   //dataitem
+   struct dataitem : pegtl::sor<pair, loop> {};
 
    //saveframe
    struct saveframeend : SAVE {};
    struct saveframeheading : pegtl::seq<SAVE, blockframecode> {};
-   struct saveframe : pegtl::if_must<saveframeheading, whitespace, pegtl::star<pegtl::sor<dataitem, loop>>, saveframeend, ws_or_eof> {};
+   struct saveframe : pegtl::if_must<saveframeheading, whitespace, pegtl::star<dataitem>, saveframeend, ws_or_eof> {};
 
    //datablock
    struct datablockheading : pegtl::seq<DATA, blockframecode> {};
-   struct datablock : pegtl::seq<datablockheading, ws_or_eof, pegtl::star<pegtl::sor<dataitem, loop, saveframe>>> {};
+   struct datablock : pegtl::seq<datablockheading, ws_or_eof, pegtl::star<pegtl::sor<dataitem, saveframe>>> {};
 
    //the actual CIF file
    struct content : pegtl::plus<pegtl::seq<datablock, pegtl::opt<whitespace>>> {};
@@ -120,22 +121,7 @@ namespace rules {
    }
 
 
-   template<typename Rule> struct CheckAction : pegtl::nothing<Rule> {};
-
-   template<> struct CheckAction<rules::missing_value> {
-      template<typename Input> static void apply(const Input& in) {
-         throw pegtl::parse_error("Malformed or missing value.", in);
-      }
-   };
-
-   template<> struct CheckAction<rules::saveframeheading> {
-      template<typename Input> static void apply(const Input& in) {
-         throw pegtl::parse_error("Saveframes are not supported by this parser. ", in);
-      }
-   };
-
-
-
+  
    template<typename Rule> struct Action : pegtl::nothing<Rule> {};
 
    template<> struct Action<blockframecode> {
@@ -153,7 +139,7 @@ namespace rules {
 
    template<> struct Action<saveframeheading> {
       template<typename Input> static void apply(const Input& in, Cif& out) {
-         throw pegtl::parse_error("Saveframes are not supported by this parser. ", in);
+         throw pegtl::parse_error("Saveframes are not yet supported by this parser. ", in);
       }
    };
 
@@ -185,10 +171,10 @@ namespace rules {
 
    //This is called when the loop_ keyword appears.
    // This is the place to construct a new loop in the list
-   template<> struct Action<LOOP> {
+   template<> struct Action<loopstart> {
       template<typename Input> static void apply(const Input& in, Cif& out) {
 #ifdef DEBUG_RULES
-         print("LOOP: ", in);
+         print("loopstart: ", in);
 #else
         out.items_->emplace_back(LoopArg{}); //construct a new Item containing a Loop
 #endif
@@ -208,18 +194,7 @@ namespace rules {
 #endif
       }
    };
-//   template<> struct Action<looptags> {
-//      template<typename Input> static void apply(const Input& in, Cif& out) {
-//#ifdef DEBUG_RULES
-//         print("looptags: ", in);
-//#else
-//         Item& item = out.items_->back();
-//         assert(std::holds_alternative<Loop>(item.data));
-//         Loop& loop = std::get<Loop>(item.data);
-//         loop.lpairs.emplace_back(in.string());
-//#endif
-//      }
-//   };
+
 
    
    //This is called each time there is a loop value.
