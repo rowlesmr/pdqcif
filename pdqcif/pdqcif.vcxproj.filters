@@ -1520,6 +1520,9 @@
     <ClInclude Include="src\cif_convert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\cif_rules.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\vendor\glm\detail\func_common.inl">

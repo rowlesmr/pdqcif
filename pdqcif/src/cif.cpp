@@ -342,7 +342,7 @@ namespace cif {
 
 } //end namespace cif
 
-
+#if 0
 namespace cif::helper {
 
    //takes a string representing a number and gives two doubles containing the value and error. The function returns true.
@@ -387,5 +387,5 @@ namespace cif::helper {
       }
    }
 }
-
+#endif
 
