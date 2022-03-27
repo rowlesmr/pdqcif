@@ -51,9 +51,6 @@
     <ClCompile Include="src\test_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\cif.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\cif_convert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1520,7 +1517,7 @@
     <ClInclude Include="src\cif_convert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\cif_rules.h">
+    <ClInclude Include="src\cif_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
