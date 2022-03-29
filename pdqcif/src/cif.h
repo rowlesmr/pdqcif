@@ -5,6 +5,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <unordered_map>
 
 #include "tao/pegtl.hpp"
 #include "tao/pegtl/contrib/trace.hpp"
@@ -19,7 +20,7 @@ namespace row {
 
       namespace rules {
 
-         #define DEBUG_RULES
+         //#define DEBUG_RULES
 
          //reserved words
          struct DATA : TAO_PEGTL_ISTRING("data_") {};
@@ -174,7 +175,7 @@ namespace row {
             print("itemtag: ", in);
             #else
             out.items_->emplace_back(in.string());
-            #endif
+#endif
          }
       };
 
@@ -184,9 +185,8 @@ namespace row {
             print("itemvalue: ", in);
             #else
             Item& item = out.items_->back();
-            assert(std::holds_alternative<Pair>(item.data));
-            Pair& pair = std::get<Pair>(item.data);
-            pair.value = in.string();
+            assert(item.type == ItemType::Pair);
+            item.pair.value = in.string();
             #endif
          }
       };
@@ -199,7 +199,7 @@ namespace row {
          template<typename Input> static void apply(const Input& in, Cif& out) {
             #ifdef DEBUG_RULES
             print("loopstart: ", in);
-         #else
+            #else
             out.items_->emplace_back(LoopArg{}); //construct a new Item containing a Loop
             #endif
          }
@@ -212,10 +212,9 @@ namespace row {
             print("looptag: ", in);
             #else
             Item& item = out.items_->back();
-            assert(std::holds_alternative<Loop>(item.data));
-            Loop& loop = std::get<Loop>(item.data);
-            loop.lpairs.emplace_back(in.string());
-            #endif
+            assert(item.type == ItemType::Loop);
+            item.loop.lpairs.emplace_back(in.string());
+#endif
          }
       };
 
@@ -229,12 +228,12 @@ namespace row {
             print("loopvalue: ", in);
             #else
             Item& item = out.items_->back();
-            assert(std::holds_alternative<Loop>(item.data));
-            Loop& loop = std::get<Loop>(item.data);
+            assert(item.type == ItemType::Loop);
+            Loop& loop = item.loop;
             loop.lpairs[loop.currentAppend].values.emplace_back(in.string());
             loop.currentAppend = ++loop.currentAppend % loop.lpairs.size();
             ++loop.totalValues;
-            #endif
+#endif
          }
       };
 
@@ -242,25 +241,78 @@ namespace row {
 
       // This is called at the end of a loop.
       // This is where you do checks to ensure you have the right number of values for the tags.
-      template<> struct Action<rules::loopend> {
+      template<> struct Action<rules::loop> {
          template<typename Input> static void apply(const Input& in, Cif& out) {
             #ifdef DEBUG_RULES
             print("loopend. ", in);
             #else
             Item& item = out.items_->back();
-            assert(std::holds_alternative<Loop>(item.data));
-            Loop& loop = std::get<Loop>(item.data);
+            assert(item.type == ItemType::Loop);
+            Loop& loop = item.loop;
             size_t should_be_zero = loop.totalValues % loop.lpairs.size();
             if (should_be_zero != 0) {
                std::string too_many{ std::to_string(should_be_zero) };
                std::string too_few{ std::to_string(loop.lpairs.size() - should_be_zero) };
                throw pegtl::parse_error(too_few + " too few, or " + too_many + " too many values in loop.", in);
             }
-            #endif
+#endif
          }
       };
 
       
+
+
+      std::string check_duplicates(const Block& block) {
+         std::unordered_map<std::string, size_t> tagCount;
+
+         std::string tag{};
+         //collect all the tags in the entire block.
+         for (const Item& item : block.items) {
+            if (item.type == ItemType::Pair) {
+               tag = item.pair.tag;
+
+               if (tagCount.find(tag) == tagCount.end()) {
+                  tagCount.insert(std::make_pair(tag, 1));
+               }
+               else {
+                  tagCount[tag]++;
+               }
+            }
+            else if (item.type == ItemType::Loop) {
+               for (const LoopPair& lp : item.loop.lpairs) {
+                  tag = lp.tag;
+                  if (tagCount.find(tag) == tagCount.end()) {
+                     tagCount.insert(std::make_pair(tag, 1));
+                  }
+                  else {
+                     tagCount[tag]++;
+                  }
+               }
+            }
+         }
+
+         std::string duplicates{};
+         for (const auto& [key, value] : tagCount) {
+            if (value > 1)
+               duplicates += key + " ";
+         }
+         return duplicates;
+      }
+
+      void check_duplicates(const Cif& cif) {
+         std::string duplicates{};
+         std::string blockDuplicates{};
+         for (const Block& block : cif.blocks) {
+            blockDuplicates = check_duplicates(block);
+            if (blockDuplicates.size() > 0) {
+               duplicates += block.name + ": " + duplicates + "\n";
+            }
+         }
+         if (duplicates.size() > 0) {
+            throw std::runtime_error("Duplicates tags encountered: " + duplicates);
+         }
+      }
+
 
       template<typename Input> void parse_input(Cif& d, Input&& in) {
          try {
@@ -280,10 +332,11 @@ namespace row {
          Cif cif;
          cif.source = in.source();
          parse_input(cif, in);
-         //check for duplicates here
+         check_duplicates(cif);
          return cif;
       }
 
+      //read in a file into a Cif. Will throw std::runtime_error if it encounters problems
       Cif read_file(const std::string& filename) {
          pegtl::file_input in(filename);
          return read_input(in);

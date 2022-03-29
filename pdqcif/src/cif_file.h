@@ -1,7 +1,7 @@
 
 
-#ifndef ROW_CIF_FILE
-#define ROW_CIF_FILE
+#ifndef ROW_CIF_FILE_
+#define ROW_CIF_FILE_
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -19,7 +19,6 @@
 
 namespace row {
    namespace cif {
-
 
       struct ItemIndex {
          size_t item{ SIZE_MAX };
@@ -145,16 +144,16 @@ namespace row {
          Pair() : tag{ }, value{ } {}
 
          Pair(std::string&& t) 
-            : tag{ std::move(t) }, value{ std::string() } {}
+            : tag{ std::move(t) }, value{ } {}
 
          Pair(const std::string& t) 
-            : tag{ t }, value{ std::string() } {}
+            : tag{ t }, value{ } {}
 
          Pair(const std::string&& t) 
-            : tag{ t }, value{ std::string() } {}
+            : tag{ t }, value{ } {}
 
          Pair(std::string& t) 
-            : tag{ t }, value{ std::string() } {}
+            : tag{ t }, value{ } {}
 
          Pair(const std::string& t, const std::string& v) 
             : tag{ t }, value{ v } {}
@@ -178,7 +177,6 @@ namespace row {
          bool has_tag(const std::string& t) const {
             return t == tag;
          }
-
       };
 
       struct LoopArg {}; // used only as arguments when creating Item
@@ -188,6 +186,7 @@ namespace row {
          Loop
       };
 
+
       struct Item {
          ItemType type;
          union {
@@ -195,25 +194,24 @@ namespace row {
             Loop loop;
          };
 
-         Item(LoopArg) {
-            loop = Loop();
-         }
-         Item(std::string&& t) {
-            pair = Pair(t);
-         }
-         Item(std::string& t) {
-            pair = Pair(t);
-         }
-         Item(const std::string& t, const std::string& v) {
-            pair = Pair(t, v);
-         }
-         Item(const std::string& t) {
-            pair = Pair(t);
-         }
+         Item(LoopArg)
+            : type{ ItemType::Loop }, loop{} {}
+
+         Item(std::string&& t) 
+            : type{ ItemType::Pair }, pair{ std::move(t) } {}
+         
+         Item(std::string& t)
+            : type{ ItemType::Pair }, pair{ t } {}
+
+         Item(const std::string& t, const std::string& v)
+            : type{ ItemType::Pair }, pair{ t, v } {}
+
+         Item(const std::string& t)
+            : type{ ItemType::Pair }, pair{ t } {}
 
          bool get_value(const std::string& t, std::vector<std::string>* v) {
-            if (type == ItemType::Loop && loop.has_tag(t)) {
-               size_t i = loop.find_tag(t);
+            size_t i{ SIZE_MAX };
+            if (type == ItemType::Loop && loop.has_tag(t, i)) {
                v = &loop.lpairs[i].values;
                return true;
             }
@@ -246,39 +244,71 @@ namespace row {
             }
          }
 
+         bool is_loop() const {
+            return type == ItemType::Loop;
+         }
+
+         bool is_pair() const {
+            return type == ItemType::Pair;
+         }
 
          //Rule of five - I'm using a union, so I need to do all the maual memory management
-         // see https://en.cppreference.com/w/cpp/language/rule_of_three
+         // I'm using a union because I want to be able to pass references to the data, rather than do it by value.
+         // see https://en.cppreference.com/w/cpp/language/rule_of_three, https://riptutorial.com/cplusplus/example/5421/rule-of-five
          ~Item() { //destructor
+            destroy();
+         }
+         //copy
+         Item(const Item& o) // constructor
+            : type{ o.type } {
+            copyItem(o);
+         }
+         Item& operator=(const Item& o) { // assignment
+            if (o.type == type) {
+               copyItem(o);
+            }
+            else {
+               destroy();
+               type = o.type;
+               copyItem(o);
+            }
+            return *this;
+         }
+         //move
+         Item(Item&& o) noexcept { // constructor
+            moveItem(std::move(o));
+         }
+         Item& operator=(Item&& o) noexcept { // assignement
+            if (o.type == type) {
+               moveItem(std::move(o));
+            }
+            else {
+               destroy();
+               type = o.type;
+               moveItem(std::move(o));
+            }
+            return *this;
+         }
+
+      private:
+         void destroy() {
             switch (type) {
             case ItemType::Pair: pair.~Pair(); break;
             case ItemType::Loop: loop.~Loop(); break;
             }
          }
-         Item(const Item& o) //copy constructor
-            : type{ o.type } {
+
+         void copyItem(const Item& o) {
             switch (type) {
-            case ItemType::Pair: pair = Pair(o.pair.tag, o.pair.value); break;
-            case ItemType::Loop: loop.lpairs = o.loop.lpairs; 
-                                 loop.currentAppend = o.loop.currentAppend; 
-                                 loop.totalValues = o.loop.totalValues; break;
+            case ItemType::Pair: new (&pair) Pair(o.pair); break; //placement new operator. It reads as:
+            case ItemType::Loop: new (&loop) Loop(o.loop); break; // at the address of loop, make a copy of o.loop using the copy constructor
             }
          }
-         Item(Item&& o) noexcept 
-            : type{ o.type } { //move constructor
-            switch (o.type) {
-            case ItemType::Pair: pair = std::exchange(o.pair, Pair()); break;
-            case ItemType::Loop: loop = std::exchange(o.loop, Loop()); break;
-            }
-         }
-         Item& operator=(const Item& o) { //copy assignment
-            return *this = Item(o);
-         }
-         Item& operator=(Item&& o) noexcept { //move assignement
-            std::swap(type, o.type);
+
+         void moveItem(Item&& o) {
             switch (type) {
-            case ItemType::Pair: std::swap(pair, o.pair); break;
-            case ItemType::Loop: std::swap(loop, o.loop); break;
+            case ItemType::Pair: new (&pair) Pair(std::move(o.pair)); break; //placement new operator. It reads as:
+            case ItemType::Loop: new (&loop) Loop(std::move(o.loop)); break; // at the address of loop, move o.loop using the move constructor
             }
          }
 
@@ -303,13 +333,13 @@ namespace row {
             ItemIndex idx{};
             for (size_t i{ 0 }; i < items.size(); ++i) {
                const Item& item = items[i];
-               if (item.type == ItemType::Loop) {
+               if (item.is_loop()) {
                   idx.loop = items[i].loop.find_tag(t);
                   if (idx.loop != SIZE_MAX) {
                      idx.item = i;
                      return idx;
                   }
-                  else if (item.type == ItemType::Pair) {
+                  else if (item.is_pair()) {
                      if (items[i].pair.has_tag(t)) {
                         idx.item = i;
                         return idx;
@@ -326,7 +356,7 @@ namespace row {
                return false;
             }
             else {
-               assert(items[idx.item].type == ItemType::Pair);
+               assert(items[idx.item].is_pair());
                v = &items[idx.item].pair.value;
                return true;
             }
@@ -338,7 +368,7 @@ namespace row {
                return false;
             }
             else {
-               assert(items[idx.item].type == ItemType::Loop);
+               assert(items[idx.item].is_loop());
                v = &items[idx.item].loop.lpairs[idx.loop].values;
                return true;
             }
@@ -451,8 +481,45 @@ namespace cif::helper {
 
    //takes a string representing a number and gives two doubles containing the value and error. The function returns true.
    // If there is not an error, then the error is given as the sqrt of the value. The function returns false.
-   bool split_val_err(const std::string& ve, double& v, double& e);
-   void split_val_err(const std::vector<std::string>& ves, std::vector<double>& v, std::vector<double>& e);
+   bool split_val_err(const std::string& ve, double& v, double& e) {
+      size_t fb = ve.find('(');
+      if (fb == std::string::npos) { //there is no error in the string
+         if (ve == "." || ve == "?") {
+            v = std::numeric_limits<double>::quiet_NaN();
+            e = std::numeric_limits<double>::quiet_NaN();
+         }
+         else {
+            v = std::stod(ve);
+            e = sqrt(abs(v));
+         }
+         return false;
+      }
+
+      size_t lb = ve.find(')');
+      std::string val = ve.substr(0, fb);
+      std::string err = ve.substr(fb + 1, lb - fb - 1);
+      size_t d = val.find('.');
+      int pow{ 0 };
+
+      if (d != std::string::npos) {
+         pow = static_cast<int>(val.size() - d) - 1;
+      }
+
+      v = std::stod(val);
+      e = std::stod(err) / std::pow(10, pow);
+      return true;
+   }
+
+   void split_val_err(const std::vector<std::string>& ves, std::vector<double>& v, std::vector<double>& e) {
+      double val{ 0 };
+      double err{ 0 };
+
+      for (const std::string ve : ves) {
+         split_val_err(ve, val, err);
+         v.push_back(val);
+         e.push_back(err);
+      }
+   }
 }
 #endif
 

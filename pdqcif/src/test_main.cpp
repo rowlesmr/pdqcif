@@ -42,10 +42,9 @@ int main(int argc, char** argv)
    std::cout << "File reading took " << file_read.count() << " us" << std::endl;
    std::cout << "File parsing took " << file_parse.count() << " us" << std::endl;
 
-   cif::print(cif, true);
+   cif::print(cif, false);
 
-
-
+ 
 
    return 0;
 }
