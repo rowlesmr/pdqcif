@@ -10,44 +10,77 @@
 
 namespace row::cif::convert {
 
-// to make it easy to concatenate vectors. https://www.techiedelight.com/concatenate-multiple-vectors-in-cpp/
-template <typename T>
-std::vector<T> operator+(const std::vector<T>& x, const std::vector<T>& y)
-{
-   std::vector<T> vec;
-   vec.reserve(x.size() + y.size());
-   vec.insert(vec.end(), x.begin(), x.end());
-   vec.insert(vec.end(), y.begin(), y.end());
-   return vec;
-}
+   // to make it easy to concatenate vectors. https://www.techiedelight.com/concatenate-multiple-vectors-in-cpp/
+   template <typename T>
+   std::vector<T> operator+(const std::vector<T>& x, const std::vector<T>& y)
+   {
+      std::vector<T> vec;
+      vec.reserve(x.size() + y.size());
+      vec.insert(vec.end(), x.begin(), x.end());
+      vec.insert(vec.end(), y.begin(), y.end());
+      return vec;
+   }
 
-template <typename T>
-std::vector<T>& operator+=(std::vector<T>& x, const std::vector<T>& y)
-{
-   x.reserve(x.size() + y.size());
-   x.insert(x.end(), y.begin(), y.end());
-   return x;
-}
+   template <typename T>
+   std::vector<T>& operator+=(std::vector<T>& x, const std::vector<T>& y)
+   {
+      x.reserve(x.size() + y.size());
+      x.insert(x.end(), y.begin(), y.end());
+      return x;
+   }
+
+   //convert a string (of vector of) to a double (or vector or), with the corresponding weights
+   void s_dw(const std::string& s, double* val, double* weight);
+   void s_d(const std::string& s, double* val);
+   void vs_dw(const std::vector<std::string>& s, std::vector<double>* val, std::vector<double>* weight);
+   void vs_d(const std::string& s, std::vector<double>* val);
 
 
 
 
-   struct DiffDataAxis {
-      std::string tag{};
-      std::vector<double> values{};
+   class DiffDataAxis {
+   private:
+      std::string m_tag;
+      std::vector<double> m_values;
+      std::vector<double> m_weights;
+
+   public:
+      DiffDataAxis(const std::string& tag, const std::vector<std::string>& values_s, const std::vector<std::string>& weight_s);
+      DiffDataAxis(const std::string& tag, const std::vector<std::string>& values_s);
+
+      bool has_weights();
+
+      const std::vector<double>* get_values() const;
+      const std::vector<double>* get_weights() const;
+      const std::string* get_tag() const;
+
+      bool get_values(const std::vector<double>* v) const;
+      bool get_weights(const std::vector<double>* v) const;
+      bool get_tag(const std::string* t) const;
    };
 
-   struct DiffData {
-      std::vector<DiffDataAxis> data{};
+   class DiffData {
+   private:
+      std::vector<std::string> m_tags;
+      std::vector<DiffDataAxis> m_data;
+   public:
+      DiffData()
+         : m_tags{}, m_data{} {}
+
+      void add_axis(const std::string& tag, const std::vector<std::string>& values_s, const std::vector<std::string>& weight_s);
+      void add_axis(const std::string& tag, const std::vector<std::string>& values_s);
 
       size_t find_tag(const std::string& t) const;
-      std::vector<double>& operator[](const std::string& t);
-      bool get_values(const std::string& t, std::vector<double>* v);
-      std::vector<double>* get_values(const std::string& t);
-      std::vector<std::string> get_tags();
+      const std::vector<double>* get_values(const std::string& t) const;
+      const std::vector<std::string> get_tags() const;
+
+      bool has_tag(const std::string& t) const;
+      bool get_values(const std::string& t, const std::vector<double>* v) const;
+      bool get_tags(const std::vector<double>* v) const;
    };
 
    struct PhaseDataSingle {
+   private:
       std::string phase_name{};					// _pd_phase_name
       double weight_percent{};					// _pd_phase_mass_%
       std::string weight_percent_s{};			// _pd_phase_mass_%
@@ -55,6 +88,30 @@ std::vector<T>& operator+=(std::vector<T>& x, const std::vector<T>& y)
       std::vector<double> refl_q{};				// = 2 * M_PI / d 
       std::vector<double> refl_th2{};			// = 2 * asin(lam / (2 * d)) * 180 / M_PI 
       std::vector<std::string> refl_hover{};	// "h + ' ' + k + ' ' + k + ' ' + "d = " + _refln_d_spacing"
+   
+   public:
+      PhaseDataSingle(const std::string& phase_name_s,
+         const std::string& weight_percent_s,
+         const std::vector<std::string>& refl_d_s);
+      PhaseDataSingle(const std::string& phase_name_s,
+         const std::string& weight_percent_s,
+         const std::vector<std::string>& refl_d_s,
+         const double& wavelength);
+      PhaseDataSingle(const std::string& phase_name_s,
+         const std::string& weight_percent_s,
+         const std::vector<std::string>& refl_d_s,
+         const std::vector<std::string>& refl_h_s,
+         const std::vector<std::string>& refl_k_s,
+         const std::vector<std::string>& refl_l_s);
+      PhaseDataSingle(const std::string& phase_name_s,
+         const std::string& weight_percent_s,
+         const std::vector<std::string>& refl_d_s,
+         const std::vector<std::string>& refl_h_s,
+         const std::vector<std::string>& refl_k_s,
+         const std::vector<std::string>& refl_l_s,
+         const double& wavelength);
+
+
    };
 
    struct PhaseData {

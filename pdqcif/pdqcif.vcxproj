@@ -147,7 +147,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\cif_convert.cpp" />
     <ClCompile Include="src\test_main.cpp" />
     <ClCompile Include="src\vendor\glm\detail\glm.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui.cpp" />
@@ -162,9 +161,7 @@
     <ClCompile Include="src\vendor\implot\implot_items.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\cif.h" />
-    <ClInclude Include="src\cif_convert.h" />
-    <ClInclude Include="src\cif_file.h" />
+    <ClInclude Include="src\plot_helper.h" />
     <ClInclude Include="src\vendor\glm\common.hpp" />
     <ClInclude Include="src\vendor\glm\detail\compute_common.hpp" />
     <ClInclude Include="src\vendor\glm\detail\compute_vector_relational.hpp" />
