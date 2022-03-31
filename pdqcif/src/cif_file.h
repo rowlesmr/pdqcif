@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <variant>
 //#include <stdexcept>
 
@@ -183,7 +184,8 @@ namespace row {
 
       enum class ItemType : unsigned char {
          Pair,
-         Loop
+         Loop, 
+         LoopPair
       };
 
 
@@ -192,6 +194,7 @@ namespace row {
          union {
             Pair pair;
             Loop loop;
+            LoopPair lpair;
          };
 
          Item(LoopArg)
@@ -239,6 +242,9 @@ namespace row {
             else if (type == ItemType::Loop) {
                return loop.has_tag(t);
             }
+            else if (type == ItemType::LoopPair) {
+               return lpair.has_tag(t);
+            }
             else {
                return false;
             }
@@ -246,6 +252,10 @@ namespace row {
 
          bool is_loop() const {
             return type == ItemType::Loop;
+         }
+
+         bool is_loopPair() const {
+            return type == ItemType::LoopPair;
          }
 
          bool is_pair() const {
@@ -295,6 +305,7 @@ namespace row {
             switch (type) {
             case ItemType::Pair: pair.~Pair(); break;
             case ItemType::Loop: loop.~Loop(); break;
+            case ItemType::LoopPair: lpair.~LoopPair(); break;
             }
          }
 
@@ -302,6 +313,7 @@ namespace row {
             switch (type) {
             case ItemType::Pair: new (&pair) Pair(o.pair); break; //placement new operator. It reads as:
             case ItemType::Loop: new (&loop) Loop(o.loop); break; // at the address of loop, make a copy of o.loop using the copy constructor
+            case ItemType::LoopPair: new (&lpair) LoopPair(o.lpair); break; // at the address of loop, make a copy of o.loop using the copy constructor
             }
          }
 
@@ -309,6 +321,7 @@ namespace row {
             switch (type) {
             case ItemType::Pair: new (&pair) Pair(std::move(o.pair)); break; //placement new operator. It reads as:
             case ItemType::Loop: new (&loop) Loop(std::move(o.loop)); break; // at the address of loop, move o.loop using the move constructor
+            case ItemType::LoopPair: new (&lpair) LoopPair(std::move(o.lpair)); break; // at the address of loop, move o.loop using the move constructor
             }
          }
 

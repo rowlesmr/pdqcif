@@ -36,6 +36,48 @@ namespace row::cif::convert {
    void vs_d(const std::string& s, std::vector<double>* val);
 
 
+   //takes a string representing a number and gives two doubles containing the value and error. The function returns true.
+   // If there is not an error, then the error is given as the sqrt of the value. The function returns false.
+   bool split_val_err(const std::string& ve, double& v, double& e) {
+      size_t fb = ve.find('(');
+      if (fb == std::string::npos) { //there is no error in the string
+         if (ve == "." || ve == "?") {
+            v = std::numeric_limits<double>::quiet_NaN();
+            e = std::numeric_limits<double>::quiet_NaN();
+         }
+         else {
+            v = std::stod(ve);
+            e = sqrt(abs(v));
+         }
+         return false;
+      }
+
+      size_t lb = ve.find(')');
+      std::string val = ve.substr(0, fb);
+      std::string err = ve.substr(fb + 1, lb - fb - 1);
+      size_t d = val.find('.');
+      int pow{ 0 };
+
+      if (d != std::string::npos) {
+         pow = static_cast<int>(val.size() - d) - 1;
+      }
+
+      v = std::stod(val);
+      e = std::stod(err) / std::pow(10, pow);
+      return true;
+   }
+
+   void split_val_err(const std::vector<std::string>& ves, std::vector<double>& v, std::vector<double>& e) {
+      double val{ 0 };
+      double err{ 0 };
+
+      for (const std::string ve : ves) {
+         split_val_err(ve, val, err);
+         v.push_back(val);
+         e.push_back(err);
+      }
+   }
+
 
 
    class DiffDataAxis {
