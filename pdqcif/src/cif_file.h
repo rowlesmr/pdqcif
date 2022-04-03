@@ -101,13 +101,6 @@ namespace row {
             return false;
          }
 
-         bool has_tag(const std::string& t) const {
-            for (const LoopPair& lp : lpairs) {
-               if (lp.has_tag(t))
-                  return true;
-            }
-            return false;
-         }
 
          bool has_tag(const std::string& t, size_t& ti) const {
             for (size_t i{ 0 }; i < lpairs.size(); ++i) {
@@ -120,12 +113,15 @@ namespace row {
             return false;
          }
 
+         bool has_tag(const std::string& t) const {
+            size_t i;
+            return has_tag(t, i);
+         }
+
          size_t find_tag(const std::string& t) const {
-            for (size_t i{ 0 }; i < lpairs.size(); ++i) {
-               if (lpairs[i].has_tag(t))
-                  return i;
-            }
-            return SIZE_MAX;
+            size_t i;
+            has_tag(t, i);
+            return i;
          }
 
          bool remove_item(const std::string& t) {
@@ -189,12 +185,14 @@ namespace row {
       };
 
 
+
+
+
       struct Item {
          ItemType type;
          union {
             Pair pair;
             Loop loop;
-            LoopPair lpair;
          };
 
          Item(LoopArg)
@@ -242,9 +240,7 @@ namespace row {
             else if (type == ItemType::Loop) {
                return loop.has_tag(t);
             }
-            else if (type == ItemType::LoopPair) {
-               return lpair.has_tag(t);
-            }
+
             else {
                return false;
             }
@@ -262,7 +258,7 @@ namespace row {
             return type == ItemType::Pair;
          }
 
-         //Rule of five - I'm using a union, so I need to do all the maual memory management
+         //Rule of five - I'm using a union, so I need to do all the manual memory management
          // I'm using a union because I want to be able to pass references to the data, rather than do it by value.
          // see https://en.cppreference.com/w/cpp/language/rule_of_three, https://riptutorial.com/cplusplus/example/5421/rule-of-five
          ~Item() { //destructor
@@ -305,7 +301,6 @@ namespace row {
             switch (type) {
             case ItemType::Pair: pair.~Pair(); break;
             case ItemType::Loop: loop.~Loop(); break;
-            case ItemType::LoopPair: lpair.~LoopPair(); break;
             }
          }
 
@@ -313,7 +308,6 @@ namespace row {
             switch (type) {
             case ItemType::Pair: new (&pair) Pair(o.pair); break; //placement new operator. It reads as:
             case ItemType::Loop: new (&loop) Loop(o.loop); break; // at the address of loop, make a copy of o.loop using the copy constructor
-            case ItemType::LoopPair: new (&lpair) LoopPair(o.lpair); break; // at the address of loop, make a copy of o.loop using the copy constructor
             }
          }
 
@@ -321,7 +315,6 @@ namespace row {
             switch (type) {
             case ItemType::Pair: new (&pair) Pair(std::move(o.pair)); break; //placement new operator. It reads as:
             case ItemType::Loop: new (&loop) Loop(std::move(o.loop)); break; // at the address of loop, move o.loop using the move constructor
-            case ItemType::LoopPair: new (&lpair) LoopPair(std::move(o.lpair)); break; // at the address of loop, move o.loop using the move constructor
             }
          }
 
@@ -329,10 +322,11 @@ namespace row {
 
       struct Block {
          std::string name{};
+         std::string pd_block_id{};
          std::vector<Item> items{};
 
          Block(const std::string& name) 
-            : name{ name }, items{} {}
+            : name{ name }, pd_block_id{ name }, items{} {}
 
          bool has_tag(const std::string& t) const {
             for (const Item& item : items) {
@@ -363,7 +357,7 @@ namespace row {
             return idx;
          }
 
-         bool get_value(const ItemIndex& idx, std::string* v) {
+         bool get_value(const ItemIndex& idx, const std::string* v) {
             if (idx.item == SIZE_MAX || idx.loop != SIZE_MAX) {
                v = nullptr;
                return false;
@@ -375,7 +369,7 @@ namespace row {
             }
          }
 
-         bool get_value(const ItemIndex& idx, std::vector<std::string>* v) {
+         bool get_value(const ItemIndex& idx, const std::vector<std::string>* v) {
             if (idx.item == SIZE_MAX || idx.loop == SIZE_MAX) {
                v = nullptr;
                return false;
@@ -387,7 +381,26 @@ namespace row {
             }
          }
 
-         bool remove_item(const std::string& t) {
+         bool get_value(const std::string& t, const std::string* v) {
+            ItemIndex idx = find_tag(t);
+            get_value(idx, v);
+         }
+
+         bool get_value(const std::string& t, const std::vector<std::string>* v) {
+            ItemIndex idx = find_tag(t);
+            get_value(idx, v);
+         }
+
+         bool is_loop(const std::string& t) {
+            ItemIndex idx = find_tag(t);
+            return  idx.loop != SIZE_MAX && idx.item != SIZE_MAX ;
+         }
+         bool is_pair(const std::string& t) {
+            ItemIndex idx = find_tag(t);
+            return idx.loop == SIZE_MAX && idx.item != SIZE_MAX;
+         }
+
+         bool remove_tag(const std::string& t) {
             ItemIndex idx = find_tag(t);
             if (idx.item == SIZE_MAX) {
                return false;
@@ -399,10 +412,24 @@ namespace row {
             else { //it's a loop
                Loop& loop = items[idx.item].loop;
                loop.lpairs.erase(loop.lpairs.begin() + idx.loop);
+               //also need to check if the entire loop is empty!
+               if (loop.lpairs.empty()) {
+                  items.erase(items.begin() + idx.item);
+               }
                return true;
             }
          }
 
+         bool remove_loop_containing_tag(const std::string& t) {
+            ItemIndex idx = find_tag(t);
+            if (idx.item == SIZE_MAX || idx.loop == SIZE_MAX) {
+               return false;
+            }
+            else { //it's a loop
+               items.erase(items.begin() + idx.item);
+               return true;
+            }
+         }
       };
 
       struct Cif {

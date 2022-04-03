@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <assert.h>
+#include <algorithm>
 
 
 namespace row::cif::plot {
@@ -30,16 +31,13 @@ namespace row::cif::plot {
    *
    ****************************************************/
    
-   void diff(const std::vector<double>& o, const std::vector<double>& c, std::vector<double>* d) {
-      if (o.size() != c.size()) {
-         d = nullptr;
+   void diff(const std::vector<double>& lhs, const std::vector<double>& rhs, std::vector<double>* r) {
+      if (lhs.size() != rhs.size()) {
+         r = nullptr;
       }
       else {
-         d->clear();
-         d->reserve(o.size());
-         for (size_t i{ 0 }; i < o.size(); ++i) {
-            d->push_back(o[i] - c[i]);
-         }
+         r->clear();
+         std::transform(lhs.begin(), lhs.end(), rhs.begin(), std::back_inserter(*r), std::minus());
       }
    }
    std::vector<double> diff(const std::vector<double>& o, const std::vector<double>& c) {
@@ -50,12 +48,9 @@ namespace row::cif::plot {
 
 
    //////////////////////////////////////////////////////////////////////////////////
-   void scale(const double& s, const std::vector<double>& d, std::vector<double>* r) {
+   void scale(const double& s, const std::vector<double>& v, std::vector<double>* r) {
       r->clear();
-      r->reserve(d.size());
-      for (size_t i{ 0 }; i < d.size(); ++i) {
-         r->push_back(s * d[i]);
-      }
+      std::transform(v.begin(), v.end(), std::back_inserter(*r), [&s](const auto& d) { return s * d; });
    }
    std::vector<double> scale(const double& s, const std::vector<double>& d) {
       std::vector<double> r;
@@ -69,10 +64,7 @@ namespace row::cif::plot {
       }
       else {
          r->clear();
-         r->reserve(d.size());
-         for (size_t i{ 0 }; i < d.size(); ++i) {
-            r->push_back(s[i] * d[i]);
-         }
+         std::transform(s.begin(), s.end(), d.begin(), std::back_inserter(*r), std::multiplies());
       }
    }
    std::vector<double> scale(const std::vector<double>& s, const std::vector<double>& d) {
@@ -83,12 +75,9 @@ namespace row::cif::plot {
 
 
    //////////////////////////////////////////////////////////////////////////////////
-   void offset(const double& s, const std::vector<double>& d, std::vector<double>* r) {
+   void offset(const double& s, const std::vector<double>& v, std::vector<double>* r) {
       r->clear();
-      r->reserve(d.size());
-      for (size_t i{ 0 }; i < d.size(); ++i) {
-         r->push_back(d[i] + s);
-      }
+      std::transform(v.begin(), v.end(), std::back_inserter(*r), [&s](const auto& d) { return s + d; });
    }
    std::vector<double> offset(const double& s, const std::vector<double>& d) {
       std::vector<double> r;
@@ -99,12 +88,9 @@ namespace row::cif::plot {
  
 
    //////////////////////////////////////////////////////////////////////////////////
-   void sqrt(const std::vector<double>& d, std::vector<double>* r) {
+   void sqrt(const std::vector<double>& v, std::vector<double>* r) {
       r->clear();
-      r->reserve(d.size());
-      for (size_t i{ 0 }; i < d.size(); ++i) {
-         r->push_back(std::sqrt(d[i]));
-      }
+      std::transform(v.begin(), v.end(), std::back_inserter(*r), [](const auto& d) { return std::sqrt(d); });
    }
    std::vector<double> sqrt(const std::vector<double>& d) {
       std::vector<double> r;
@@ -112,12 +98,9 @@ namespace row::cif::plot {
       return r;
    }
 
-   void log10(const std::vector<double>& d, std::vector<double>* r) {
+   void log10(const std::vector<double>& v, std::vector<double>* r) {
       r->clear();
-      r->reserve(d.size());
-      for (size_t i{ 0 }; i < d.size(); ++i) {
-         r->push_back(std::log10(d[i]));
-      }
+      std::transform(v.begin(), v.end(), std::back_inserter(*r), [](const auto& d) { return std::log10(d); });
    }
    std::vector<double> log10(const std::vector<double>& d) {
       std::vector<double> r;

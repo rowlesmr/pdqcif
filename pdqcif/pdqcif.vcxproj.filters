@@ -51,6 +51,9 @@
     <ClCompile Include="src\test_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\cif_transform.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\vendor\glm\detail\_features.hpp">
@@ -1508,7 +1511,7 @@
     <ClInclude Include="src\vendor\tao\pegtl.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\plot_helper.h">
+    <ClInclude Include="src\cif_transform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -60,6 +60,8 @@ int main(int argc, char** argv)
 #include <chrono>
 #include <cmath>
 #include <random>
+#include <algorithm>
+#include <vector>
 
 
 using namespace row::cif::plot;
@@ -81,130 +83,21 @@ void print(const T& t, const U& c) {
 }
 
 
-bool stode(const char* s, double& v, double& e)
-{
-   v = 0.0; //value
-   e = 0.0; //the error in the value
-
-   int sgn = 1; // what is sign of the double?
-   int p = 0; // what is the effective power for the value and error terms?
-   bool has_e = false; // does the string have an error term?
-   int c = *s;
-
-   //get the sign of the double
-   if (c == '-') {
-      sgn = -1;
-      s++;
-   }
-   else if (c == '+') {
-      s++;
-   }
-   //get the digits before the decimal point
-   while ((c = *s++) != '\0' && std::isdigit(c)) {
-      v = v * 10.0 + (c - '0');
-   }
-   //get the digits after the decimal point
-   if (c == '.') {
-      while ((c = *s++) != '\0' && std::isdigit(c)) {
-         v = v * 10.0 + (c - '0');
-         p--;
-      }
-   }
-   //get the digits that belong to the exponent
-   if (c == 'e' || c == 'E') {
-      int sign = 1;
-      int m = 0;
-      c = *s++;
-      if (c == '+')
-         c = *s++;
-      else if (c == '-') {
-         c = *s++;
-         sign = -1;
-      }
-      while (isdigit(c)) {
-         m = m * 10 + (c - '0');
-         c = *s++;
-      }
-      p += sign * m;
-   }
-   // get the digits that belong to the error
-   if (c == '(') {
-      while ((c = *s++) != '\0' && std::isdigit(c)) { //implicitly breaks out of loop on the trailing ')'
-         e = e * 10.0 + (c - '0');
-      }
-      has_e = true;
-   }
-   ////scale the value and error
-   while (p > 0) {
-      v *= 10.0;
-      e *= 10.0;
-      p--;
-   }
-   while (p < 0) {
-      v *= 0.1;
-      e *= 0.1;
-      p++;
-   }
-   //apply the correct sign to the value
-   v *= sgn;
-
-   return has_e;
-}
-
-bool my_atof(const std::string s, double& v, double& e)
-{
-   return my_atof(s.c_str(), v, e);
-}
-
-
-
-
-
-
-
-constexpr double pow10(int e) {
-   double d{ 1 };
-   while (e > 0) {
-      d *= 10;
-      --e;
-   }
-   while (e < 0) {
-      d /= 10;
-      ++e;
-   }
-   return d;
-}
-
-struct pow10s {
-
-   const std::vector<double> pows{ 0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000, 1000000 };
-
-   double operator[](int exp) {
-      return pows[(exp + static_cast<int>(6))];
-   }
-};
-
-
-
 int main() {
-   double v, e;
-
-   std::vector<std::string> ves{ "34.5(1)", "435.348(12)", "456(5546)", "00.321(12345)",
-                               "5.123E+004(12)", "-0.05234e-3(24)", "3450e-2(5)"};
-
-   size_t len{ 0 };
-   for (const std::string& s : ves) {
-      if (s.length() > len)
-         len = s.length();
-   }
+   std::vector<double> values{};
+   double start{ 12.4 };
+   double step{ 0.02 };
+   double stop{ 12.54 };
 
 
-   for (const std::string& s : ves) {
-      //std::cout<< '\n' << s  << std::endl;
-      my_atof(s, v, e);
-      std::cout << std::setw(len-s.length()) << " " << s << " --> " << v << " +/- " << e << std::endl;
-   }
+   int points = static_cast<int>(((stop - start) / step) + 1.000001);
+   values.resize(points);
 
+   
+
+   double i{ 0.0 };
+   std::generate(values.begin(), values.end(), [&i, &start, &step]() { return start + step * i++; });
+   print(values);
 
    return 0;
 }
