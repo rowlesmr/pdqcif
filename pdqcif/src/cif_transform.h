@@ -188,14 +188,13 @@ namespace row::cif::transform {
 
    struct DiffDataAxis {
    
-      std::string tag{};
       std::vector<double> values{};
       std::vector<double> weights{};
       bool has_weights{};
          
-      DiffDataAxis(const std::string& tag, const std::vector<std::string>& values_s, const std::vector<std::string>& weights_s);
-      DiffDataAxis(const std::string& tag, const std::vector<std::string>& values_s, const bool weights_from_values = false);
-      DiffDataAxis(const std::string& tag, const std::string& th2_min, const std::string& th2_inc, const std::string& th2_max);
+      DiffDataAxis(const std::vector<std::string>& values_s, const std::vector<std::string>& weights_s);
+      DiffDataAxis(const std::vector<std::string>& values_s, const bool weights_from_values = false);
+      DiffDataAxis(const std::string& th2_min, const std::string& th2_inc, const std::string& th2_max);
 
       size_t size();
    };
@@ -213,16 +212,12 @@ namespace row::cif::transform {
    };
 
    struct PhaseDataSingle {
-      std::string phase_name{};					// _pd_phase_name
       std::vector<double> refl_d{};				// _refln_d_spacing
       std::vector<double> refl_q{};				// = 2 * M_PI / d 
       std::vector<double> refl_th2{};			// = 2 * asin(lam / (2 * d)) * 180 / M_PI 
       std::vector<std::string> refl_hover{};	// "h + ' ' + k + ' ' + k + ' ' + "d = " + _refln_d_spacing"
       double weight_percent{ NaN };				// _pd_phase_mass_%
       std::string weight_percent_s{};			// _pd_phase_mass_%
-
-
-      PhaseDataSingle(const std::string& phase_name_s);
 
       void add_refl_d(const std::vector<std::string>& refl_d_s);
       void add_refl_hover(const std::vector<std::string>& refl_h_s, const std::vector<std::string>& refl_k_s, const std::vector<std::string>& refl_l_s);
@@ -244,7 +239,6 @@ namespace row::cif::transform {
 
       PhaseDataSingle& operator[](const std::string& t);
       bool has_phase(const std::string& phase_name_s) const;
-
    };
 
 
@@ -272,25 +266,37 @@ namespace row::cif::transform {
                                                 "_refine_ls_goodness_of_fit_all", "_pd_proc_ls_prof_wR_factor", "_pd_proc_ls_prof_wr_expected" };
 
 
-   struct CifBlock {
+   struct BlockIndices {
+      std::vector<size_t> patterns{};
+      std::vector<size_t> structures{};
+      std::vector<size_t> others{};
+   };
+
+
+
+   struct NiceData {
+      std::unordered_map<std::string, double> values{};
+      std::unordered_map<std::string, std::string> strings{};
+
+      void add_data(const std::string& t, const std::string& v);
+      std::string get_string(const std::string& t) const;
+      double operator[](const std::string& t) const;
+      bool has_tag(const std::string& t) const;
+   };
+
+   struct Pattern {
       std::string block_code{};		// data_#####
       std::string block_id{};			// _pd_block_id
 
       DateTime datetime{};				// _pd_meas_datetime_initiated
 
-      double wavelength{ 0 };			// _diffrn_radiation_wavelength
-      double temperature{ 0 };		// _diffrn_ambient_temperature
-      double pressure{ 0 };			// _diffrn_ambient_pressure
-      double gof{ 0 };					// _refine_ls_goodness_of_fit_all
-      double rwp{ 0 };					// _pd_proc_ls_prof_wR_factor
-      double rexp{ 0 };					// _pd_proc_ls_prof_wr_expected
-
-      std::string wavelength_s{};
-      std::string gof_s{};
-      std::string rwp_s{};
-      std::string rexp_s{};
-      std::string temperature_s{};
-      std::string pressure_s{};
+      // _diffrn_radiation_wavelength
+      // _diffrn_ambient_temperature
+      // _diffrn_ambient_pressure
+      // _refine_ls_goodness_of_fit_all
+      // _pd_proc_ls_prof_wR_factor
+      // _pd_proc_ls_prof_wr_expected
+      NiceData nice_data{};
 
       PhaseData phase_data{};
 
@@ -325,27 +331,29 @@ namespace row::cif::transform {
       DiffData y_bkg{};
    };
 
-   struct CifFile {
-   private:
-      std::vector<CifBlock> m_blocks{};
-      row::cif::Cif m_cif;
-   public:
+   struct File {
+
+      std::vector<Pattern> patterns{};
+      BlockIndices block_indices;
+      row::cif::Cif cif;
+
       
 
       void transform();
 
 
    private:
+      //principal methods
       void make_up_block_ids();
-      void expand_multiple_dataloops();
-      void expand_2theta_min_max_inc();
-      void get_hkl_ticks();
+      void group_block_names();
       void get_nice_to_have_information();
+      void expand_multiple_dataloops();
+      void get_hkl_ticks();
       void make_just_patterns_cif();
-      void make_cif_numeric();
       void calc_extra_data();
       void put_phase_mass_pct_in_strs();
       void rename_datablock_from_blockid();
+
 
    };
 

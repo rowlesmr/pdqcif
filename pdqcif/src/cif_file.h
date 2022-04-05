@@ -57,8 +57,6 @@ namespace row {
          LoopPair(std::string&& t, std::vector<std::string>&& v) 
             : tag{ std::move(t) }, values{ std::move(v) } {}
 
-
-
          bool get_values(std::vector<std::string>* v) {
             v = &values;
             return true;
@@ -357,7 +355,7 @@ namespace row {
             return idx;
          }
 
-         bool get_value(const ItemIndex& idx, const std::string* v) {
+         bool get_value(const ItemIndex& idx, const std::string* v)const {
             if (idx.item == SIZE_MAX || idx.loop != SIZE_MAX) {
                v = nullptr;
                return false;
@@ -369,7 +367,7 @@ namespace row {
             }
          }
 
-         bool get_value(const ItemIndex& idx, const std::vector<std::string>* v) {
+         bool get_value(const ItemIndex& idx, const std::vector<std::string>* v)const {
             if (idx.item == SIZE_MAX || idx.loop == SIZE_MAX) {
                v = nullptr;
                return false;
@@ -381,21 +379,21 @@ namespace row {
             }
          }
 
-         bool get_value(const std::string& t, const std::string* v) {
+         bool get_value(const std::string& t, const std::string* v)const {
             ItemIndex idx = find_tag(t);
             get_value(idx, v);
          }
 
-         bool get_value(const std::string& t, const std::vector<std::string>* v) {
+         bool get_value(const std::string& t, const std::vector<std::string>* v)const {
             ItemIndex idx = find_tag(t);
             get_value(idx, v);
          }
 
-         bool is_loop(const std::string& t) {
+         bool is_loop(const std::string& t)const  {
             ItemIndex idx = find_tag(t);
             return  idx.loop != SIZE_MAX && idx.item != SIZE_MAX ;
          }
-         bool is_pair(const std::string& t) {
+         bool is_pair(const std::string& t)const  {
             ItemIndex idx = find_tag(t);
             return idx.loop == SIZE_MAX && idx.item != SIZE_MAX;
          }
@@ -437,6 +435,17 @@ namespace row {
          std::vector<Block> blocks{};
          std::vector<Item>* items_ = nullptr; //this is used to point to the items in the current block
          std::string* blockcode_ = nullptr; // this points to the name of the current block
+
+         bool get_block(std::string name, const Block* b) {
+            for (size_t i{ 0 }; i < blocks.size(); ++i) {
+               if (name == blocks[i].name) {
+                  b = &blocks[i];
+                  return true;
+               }
+            }
+            b = nullptr;
+            return false;
+         }
       };
 
 

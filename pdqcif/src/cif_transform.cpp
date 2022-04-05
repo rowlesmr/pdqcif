@@ -13,8 +13,8 @@ namespace row::cif::transform {
    *  DiffDataAxis - contains a single set of x, yobs, ycalc, or ybkg data
    *
    ****************************************************/
-   DiffDataAxis::DiffDataAxis(const std::string& tag, const std::vector<std::string>& values_s, const std::vector<std::string>& weights_s)
-      : tag{ tag }, has_weights{ false } {
+   DiffDataAxis::DiffDataAxis(const std::vector<std::string>& values_s, const std::vector<std::string>& weights_s)
+      : has_weights{ false } {
       if (values_s.size() != weights_s.size()) {
          throw std::runtime_error("Length of values_s and weights_s must be the same.");
       }
@@ -37,8 +37,8 @@ namespace row::cif::transform {
       }
    }
 
-   DiffDataAxis::DiffDataAxis(const std::string& tag, const std::vector<std::string>& values_s, const bool weights_from_values)
-      : tag{ tag }, has_weights{ false } {
+   DiffDataAxis::DiffDataAxis(const std::vector<std::string>& values_s, const bool weights_from_values)
+      : has_weights{ false } {
 
       double val{ 0 };
       double err{ 0 };
@@ -61,8 +61,8 @@ namespace row::cif::transform {
       }
    }
 
-   DiffDataAxis::DiffDataAxis(const std::string& tag, const std::string& th2_min, const std::string& th2_inc, const std::string& th2_max)
-      : tag{ tag }, has_weights{ false } {
+   DiffDataAxis::DiffDataAxis(const std::string& th2_min, const std::string& th2_inc, const std::string& th2_max)
+      : has_weights{ false } {
       double start{ 0.0 };
       double step{ 0.0 };
       double stop{ 0.0 };
@@ -71,7 +71,11 @@ namespace row::cif::transform {
       str_to_v(th2_inc, step);
       str_to_v(th2_min, stop);
 
-      int points = static_cast<int>(((stop - start) / step) + 1.000001);
+      if (start > stop) {
+         throw std::runtime_error("The start angle must be smaller than the stop angle.");
+      }
+
+      size_t points = static_cast<size_t>(((stop - start) / step) + 1.000001);
       values.resize(points);
 
       double i{ 0.0 };
@@ -88,27 +92,27 @@ namespace row::cif::transform {
    *
    ****************************************************/
    void DiffData::add_axis(const std::string& tag, const std::vector<std::string>& values_s, const std::vector<std::string>& weights_s) {
-      map.emplace(tag, ( tag, values_s, weights_s));
+      axes.emplace(tag, ( values_s, weights_s));
       tags.push_back(tag);
    }
    void DiffData::add_axis(const std::string& tag, const std::vector<std::string>& values_s, const bool weights_from_values) {
-      map.emplace(tag, (values_s, weights_from_values));
+      axes.emplace(tag, (values_s, weights_from_values));
       tags.push_back(tag);
    }
 
    DiffDataAxis& DiffData::operator[](const std::string& t) {
-      auto it = std::find(map.begin(), map.end(), t);
-      if (it == map.end()) {
+      auto it = axes.find(t);
+      if (it == axes.end()) {
          throw std::out_of_range("Tag not found.");
       }
       else {
-         return map[t];
+         return it->second; //where second == value (first == key)
       }
    }
 
    bool DiffData::has_tag(const std::string& t) const {
-      auto it = std::find(map.begin(), map.end(), t);
-      return it != map.end();
+      auto it = axes.find(t);
+      return it != axes.end();
    }
 
    /***************************************************
@@ -116,9 +120,7 @@ namespace row::cif::transform {
    *  PhaseDataSingle - information about a single phase
    *
    ****************************************************/
-   PhaseDataSingle::PhaseDataSingle(const std::string& phase_name_s)
-      : phase_name{ phase_name_s } {}
-
+  
    void PhaseDataSingle::add_refl_d(const std::vector<std::string>& refl_d_s){
       refl_d.reserve(refl_d_s.size());
       refl_q.reserve(refl_d_s.size());
@@ -169,31 +171,67 @@ namespace row::cif::transform {
    }
 
    void PhaseData::add_phase(const std::string& phase_name_s) {
-      phases.emplace(phase_name_s, phase_name_s);
+      phases[phase_name_s]; //initialises an empty PhaseDataSingle
       phase_names.emplace_back(phase_name_s);
    }
     
-   PhaseDataSingle& PhaseData::operator[](const std::string& t) {
-      auto it = std::find(phases.begin(), phases.end(), t);
+   PhaseDataSingle& PhaseData::operator[](const std::string& p) {
+      auto it = phases.find(p);
       if (it == phases.end()) {
-         throw std::out_of_range("Tag not found.");
+         throw std::out_of_range("Phase not found.");
       }
       else {
-         return phases[t];
+         return it->second;
       }
    }
 
    bool PhaseData::has_phase(const std::string& p) const {
-      auto it = std::find(phases.begin(), phases.end(), p);
+      auto it = phases.find(p);
       return it != phases.end();
    }
 
  
+   /***************************************************
+    *
+    *  NiceData - a struct holding a couple of maps of data I've said are nice to have
+    *
+    ****************************************************/
+   
+   void NiceData::add_data(const std::string& t, const std::string& v) {
+      strings[t] = v;
+      double d;
+      str_to_v(v, d);
+      values[t] = d;
+   }
+   
+   double NiceData::operator[](const std::string& t) const {
+      auto it = values.find(t);
+      if (it == values.end()) {
+         throw std::out_of_range("Tag not found.");
+      }
+      else {
+         return it->second;
+      }
+   }
 
+   std::string NiceData::get_string(const std::string& t) const {
+      auto it = strings.find(t);
+      if (it == strings.end()) {
+         throw std::out_of_range("Tag not found.");
+      }
+      else {
+         return it->second;
+      }
+   }
+
+   bool NiceData::has_tag(const std::string& t) const {
+      auto it = values.find(t);
+      return it != values.end();
+   }
 
    /***************************************************
    *
-   *  CifBlock - a single transformd Block from a Cif
+   *  Pattern - a single Block from a Cif that represents a diffraction pattern
    *
    ****************************************************/
 
@@ -201,14 +239,14 @@ namespace row::cif::transform {
 
    /***************************************************
    *
-   *  CifFile - a Cif that has been transformed for plotting
+   *  File - a ciffile that has been transformed for plotting
    *
    ****************************************************/
 
   
    //If there isn't a block id, make it equal to the data_name
-   void CifFile::make_up_block_ids() {
-      for (row::cif::Block& block : m_cif.blocks) {
+   void File::make_up_block_ids() {
+      for (row::cif::Block& block : cif.blocks) {
          const std::string* block_id{};
          block.get_value("_pd_block_id", block_id);
          if (block_id == nullptr)
@@ -217,6 +255,60 @@ namespace row::cif::transform {
             block.pd_block_id = *block_id;
       }
    }
+
+   //looks through all the Blocks in a given Cif and categorises them into ones that are:
+   //  1 - diffraction patterns
+   //  2 - crystal structures
+   //  3 - other
+   void File::group_block_names() {
+      for (size_t i{ 0 }; i < cif.blocks.size(); ++i) {
+         const row::cif::Block& block = cif.blocks[i];
+         if (std::any_of(X_AXES.begin(), X_AXES.end(), [&block](const auto& t) { return block.has_tag(t); })) {
+            block_indices.patterns.push_back(i);
+         }
+         else if (block.has_tag("_cell_length_a")) {
+            block_indices.structures.push_back(i);
+         }
+         else {
+            block_indices.others.push_back(i);
+         }
+      }
+   }
+
+
+
+   void File::get_nice_to_have_information() {
+      for (const size_t i : block_indices.patterns) {
+         //find all of the structures linked to this pattern
+         const row::cif::Block& block = cif.blocks[i];
+         std::vector<std::string> linked_structures{};
+         std::string ls{};
+         
+         if (block.has_tag("_pd_phase_block_id")) {
+            if (block.is_loop("_pd_phase_block_id")) {
+               block.get_value("_pd_phase_block_id", &linked_structures);
+            }
+            else { //is pair
+               block.get_value("_pd_phase_block_id", &ls);
+               linked_structures.push_back(ls);
+            }
+         }
+         //all of the linked structures, if any, are now in the vector
+
+         //Now to get the values
+         for (const std::string& t : NICE_TO_HAVE) {
+            if(block.has_tag)
+         }
+
+
+
+
+      }
+   }
+
+
+
+
 
 
 
