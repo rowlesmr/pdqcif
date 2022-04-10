@@ -67,9 +67,11 @@ int main(int argc, char** argv)
 #include "cif_transform.h"
 #include "cif.h"
 
+#include <tao/pegtl/contrib/trace.hpp>
 
 
 using namespace row;
+namespace pegtl = tao::pegtl;
 
 #if 0
 template<typename T, typename A>
@@ -102,10 +104,14 @@ int main() {
    auto file_open = std::chrono::high_resolution_clock::now();
    cif::Cif cif{};
    try {
+      //pegtl::file_input in("C:\\data\\test.cif");
+      
       //pegtl::complete_trace<cif::rules::file>(in);
       //pegtl::standard_trace< cif::rules::cif >(in);
-     //pegtl::tracer< pegtl::tracer_traits< true, true, true > > tr(in);
-      //tr.parse< rules::cif >(in);
+      //pegtl::tracer< pegtl::tracer_traits< true, true, true > > tr(in);
+      //tr.parse< cif::rules::file >(in);
+
+      //parse_input(cif, in);
       cif = cif::read_file("C:\\data\\test.cif");
    }
    //catch (pegtl::parse_error& e) {
@@ -131,7 +137,7 @@ int main() {
 
    cif::transform::File file(cif);
 
-   file.transform();
+ 
 
    //print(file, cif::transform::PrintVerbosity::All);
 

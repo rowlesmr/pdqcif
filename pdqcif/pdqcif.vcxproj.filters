@@ -48,19 +48,22 @@
     <ClCompile Include="src\vendor\implot\implot_items.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\cif_transform.cpp">
+    <ClCompile Include="src\cif_file.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\cif_file.cpp">
+    <ClCompile Include="src\vendor\nfd\nfd_win.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\test_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\cif.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Application.cpp">
+    <ClCompile Include="src\cif_transform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\nfd\nfd_win.cpp">
+    <ClCompile Include="src\parse_cif.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1523,6 +1526,15 @@
     <ClInclude Include="src\cif_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\vendor\nfd\nfd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\nfd\nfd.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cif_db.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\cif.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1530,12 +1542,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\plot_helper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\vendor\nfd\nfd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\vendor\nfd\nfd.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
