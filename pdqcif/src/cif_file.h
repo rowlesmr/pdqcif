@@ -42,8 +42,8 @@ namespace row {
          LoopPair() 
             : tag{ }, values{  } {}
 
-         LoopPair(std::string&& t) 
-            : tag{ std::move(t) }, values{  } {}
+         //LoopPair(std::string&& t) 
+         //   : tag{ std::move(t) }, values{  } { std::cout << "making looppair &&" << tag << std::endl; }
 
          LoopPair(const std::string& t) 
             : tag{ t }, values{  } {}
@@ -54,21 +54,21 @@ namespace row {
          LoopPair(const std::string& t, const std::vector<std::string>& v) 
             : tag{ t }, values{ v } {}
 
-         LoopPair(std::string&& t, std::vector<std::string>&& v) 
-            : tag{ std::move(t) }, values{ std::move(v) } {}
+         //LoopPair(std::string&& t, std::vector<std::string>&& v) 
+         //   : tag{ std::move(t) }, values{ std::move(v) } { std::cout << "making looppair &&" << tag << ": " << values[0] << std::endl; }
 
-         bool get_values(std::vector<std::string>* v) {
-            v = &values;
-            return true;
+         LoopPair(const LoopPair& lp)
+            : tag{ lp.tag }, values{ lp.values }{}
+
+         const std::vector<std::string>& get_values() const {
+            return values;
          }
-         bool get_values(const std::string& t, std::vector<std::string>* v) {
+         const std::vector<std::string>& get_values(const std::string& t) const {
             if (t == tag) {
-               v = &values;
-               return true;
+               return values;
             }
             else {
-               v = nullptr;
-               return false;
+               throw std::out_of_range("Tag does not exist.");
             }
          }
 
@@ -88,17 +88,20 @@ namespace row {
          Loop(std::vector<LoopPair> lps)
             : lpairs{ lps } {}
 
-         bool get_values(const std::string& t, std::vector<std::string>* v) {
-            for (LoopPair& lp : lpairs) {
+         Loop(const Loop& loop)
+            :lpairs{ loop.lpairs }, currentAppend{ loop.currentAppend }, totalValues{ loop.totalValues }{}
+         
+         const std::vector<std::string>& get_values(const std::string& t) const {
+            for (const LoopPair& lp : lpairs) {
                if (lp.has_tag(t)) {
-                  v = &lp.values;
-                  return true;
+                  return lp.values;
                }
             }
-            v = nullptr;
-            return false;
+            throw std::out_of_range("Tag does not exist.");
          }
-
+         const std::vector<std::string>& get_value(const std::string& t) const {
+            return get_values(t);
+         }
 
          bool has_tag(const std::string& t, size_t& ti) const {
             for (size_t i{ 0 }; i < lpairs.size(); ++i) {
@@ -134,7 +137,10 @@ namespace row {
 
       struct Pair {
          std::string tag{};
-         std::string value{};
+         // if the value is stored in a vector, then the return type for all values is a vector<string>
+         //  if it is only one element, then just use that one. More than one, then you have a loop.
+         //Trust me. It's easier this way.
+         std::vector<std::string> value{};
 
          Pair() : tag{ }, value{ } {}
 
@@ -153,19 +159,19 @@ namespace row {
          Pair(const std::string& t, const std::string& v) 
             : tag{ t }, value{ v } {}
 
-         bool get_value(std::string* v) {
-            v = &value;
-            return true;
+         Pair(const Pair& pair)
+            :tag{ pair.tag }, value{ pair.value } {}
+
+         const std::vector<std::string>& get_value() const {
+            return value;
          }
 
-         bool get_value(const std::string& t, std::string* v) {
-            if (t == tag) {
-               v = &value;
-               return true;
+         const std::vector<std::string>& get_value(const std::string& t) const {
+            if (has_tag(t)) {
+               return value;
             }
             else {
-               v = nullptr;
-               return false;
+               throw std::out_of_range("Tag not found.");
             }
          }
 
@@ -178,12 +184,8 @@ namespace row {
 
       enum class ItemType : unsigned char {
          Pair,
-         Loop, 
-         LoopPair
+         Loop
       };
-
-
-
 
 
       struct Item {
@@ -193,63 +195,46 @@ namespace row {
             Loop loop;
          };
 
-         Item(LoopArg)
+         explicit Item(LoopArg)
             : type{ ItemType::Loop }, loop{} {}
 
-         Item(std::string&& t) 
+         explicit Item(std::string&& t)
             : type{ ItemType::Pair }, pair{ std::move(t) } {}
          
-         Item(std::string& t)
+         explicit Item(std::string& t)
             : type{ ItemType::Pair }, pair{ t } {}
 
          Item(const std::string& t, const std::string& v)
             : type{ ItemType::Pair }, pair{ t, v } {}
 
-         Item(const std::string& t)
+         explicit Item(const std::string& t)
             : type{ ItemType::Pair }, pair{ t } {}
 
-         bool get_value(const std::string& t, std::vector<std::string>* v) {
-            size_t i{ SIZE_MAX };
-            if (type == ItemType::Loop && loop.has_tag(t, i)) {
-               v = &loop.lpairs[i].values;
-               return true;
-            }
-            else {
-               v = nullptr;
-               return false;
-            }
-         }
-
-         bool get_value(const std::string& t, std::string* v) {
-            if (type == ItemType::Pair && pair.has_tag(t)) {
-               v = &pair.value;
-               return true;
-            }
-            else {
-               v = nullptr;
-               return false;
-            }
-         }
-
          bool has_tag(const std::string& t) const {
-            if (type == ItemType::Pair) {
+            if (is_pair()) {
                return pair.has_tag(t);
             }
-            else if (type == ItemType::Loop) {
+            else if (is_loop()) {
                return loop.has_tag(t);
             }
-
             else {
                return false;
             }
          }
+
+         const std::vector<std::string>& get_value(const std::string& t) const {
+            if (is_pair()) {
+               return pair.get_value(t);
+            }
+            else if (is_loop()) {
+               return loop.get_value(t);
+            }
+            throw std::out_of_range("Tag not found.");
+         }
+
 
          bool is_loop() const {
             return type == ItemType::Loop;
-         }
-
-         bool is_loopPair() const {
-            return type == ItemType::LoopPair;
          }
 
          bool is_pair() const {
@@ -257,7 +242,7 @@ namespace row {
          }
 
          //Rule of five - I'm using a union, so I need to do all the manual memory management
-         // I'm using a union because I want to be able to pass references to the data, rather than do it by value.
+         // I'm using a union because I want to be able to pass references to the data, rather than do it by value, as in std::variant.
          // see https://en.cppreference.com/w/cpp/language/rule_of_three, https://riptutorial.com/cplusplus/example/5421/rule-of-five
          ~Item() { //destructor
             destroy();
@@ -279,7 +264,8 @@ namespace row {
             return *this;
          }
          //move
-         Item(Item&& o) noexcept { // constructor
+         Item(Item&& o) noexcept
+            : type{ o.type }  { // constructor
             moveItem(std::move(o));
          }
          Item& operator=(Item&& o) noexcept { // assignement
@@ -326,6 +312,9 @@ namespace row {
          Block(const std::string& name) 
             : name{ name }, pd_block_id{ name }, items{} {}
 
+         Block(const Block& block)
+            :name{ block.name }, pd_block_id{ block.pd_block_id }, items{ block.items } {}
+
          bool has_tag(const std::string& t) const {
             for (const Item& item : items) {
                if (item.has_tag(t))
@@ -344,56 +333,40 @@ namespace row {
                      idx.item = i;
                      return idx;
                   }
-                  else if (item.is_pair()) {
-                     if (items[i].pair.has_tag(t)) {
-                        idx.item = i;
-                        return idx;
-                     }
+               }
+               else if (item.is_pair()) {
+                  if (items[i].pair.has_tag(t)) {
+                     idx.item = i;
+                     return idx;
                   }
                }
             }
             return idx;
          }
 
-         bool get_value(const ItemIndex& idx, const std::string* v)const {
-            if (idx.item == SIZE_MAX || idx.loop != SIZE_MAX) {
-               v = nullptr;
-               return false;
+         const std::vector<std::string>& get_value(const ItemIndex& idx) const {
+            if (idx.item == SIZE_MAX) {
+               throw std::out_of_range("Tag not found.");
             }
-            else {
-               assert(items[idx.item].is_pair());
-               v = &items[idx.item].pair.value;
-               return true;
+            else if (idx.loop == SIZE_MAX) { //it's a pair
+               return items[idx.item].pair.value;
             }
-         }
-
-         bool get_value(const ItemIndex& idx, const std::vector<std::string>* v)const {
-            if (idx.item == SIZE_MAX || idx.loop == SIZE_MAX) {
-               v = nullptr;
-               return false;
-            }
-            else {
-               assert(items[idx.item].is_loop());
-               v = &items[idx.item].loop.lpairs[idx.loop].values;
-               return true;
+            else { //it's a loop
+               return items[idx.item].loop.lpairs[idx.loop].values;
             }
          }
 
-         bool get_value(const std::string& t, const std::string* v)const {
+         const std::vector<std::string>& get_value(const std::string& t) const {
             ItemIndex idx = find_tag(t);
-            get_value(idx, v);
+            return get_value(idx);
          }
 
-         bool get_value(const std::string& t, const std::vector<std::string>* v)const {
-            ItemIndex idx = find_tag(t);
-            get_value(idx, v);
-         }
-
-         bool is_loop(const std::string& t)const  {
+         bool is_loop(const std::string& t) const  {
             ItemIndex idx = find_tag(t);
             return  idx.loop != SIZE_MAX && idx.item != SIZE_MAX ;
          }
-         bool is_pair(const std::string& t)const  {
+        
+         bool is_pair(const std::string& t) const  {
             ItemIndex idx = find_tag(t);
             return idx.loop == SIZE_MAX && idx.item != SIZE_MAX;
          }
@@ -436,15 +409,22 @@ namespace row {
          std::vector<Item>* items_ = nullptr; //this is used to point to the items in the current block
          std::string* blockcode_ = nullptr; // this points to the name of the current block
 
-         bool get_block(std::string name, const Block* b) {
+         const Block& get_block(std::string name) {
             for (size_t i{ 0 }; i < blocks.size(); ++i) {
                if (name == blocks[i].name) {
-                  b = &blocks[i];
-                  return true;
+                  return blocks[i];
                }
             }
-            b = nullptr;
-            return false;
+            throw std::out_of_range("Block not found.");
+         }
+
+         const Block& get_block_by_id(std::string id) {
+            for (size_t i{ 0 }; i < blocks.size(); ++i) {
+               if (id == blocks[i].pd_block_id) {
+                  return blocks[i];
+               }
+            }
+            throw std::out_of_range("pd_block_id not found.");
          }
       };
 
@@ -455,69 +435,15 @@ namespace row {
       * Helper functions
       *
       *************************************************************************************/
-      void print(const std::string& s) {
-         std::cout << s << std::endl;
-      }
-      void print(const int s) {
-         std::cout << s << std::endl;
-      }
-      void print(const std::vector<std::string>& v) {
-         for (const std::string& s : v)
-            std::cout << s << '\n';
-         std::cout << std::endl;
-      }
-      void print(const Pair& p) {
-         std::cout << p.tag << '\t' << p.value << std::endl;
-      }
-      void print(const LoopPair& lp) {
-         std::cout << lp.tag << '\n';
-         for (const std::string& v : lp.values)
-            std::cout << '\t' << v << '\n';
-         std::cout << std::endl;
-      }
-      void print(const Loop& loop) {
-         size_t total_values = loop.lpairs.size() * loop.lpairs[0].values.size();
-         size_t total_tags = loop.lpairs.size();
-         //tags
-         for (const LoopPair& p : loop.lpairs) {
-            std::cout << p.tag << '\t';
-         }
-         //values
-         for (size_t k = 0; k < total_values; ++k) {
-            size_t col = k % total_tags;
-            size_t row = k / total_tags;
-            if (col == 0)
-               std::cout << std::endl;
-            std::cout << loop.lpairs[col].values[row] << '\t';
-         }
-         std::cout << std::endl;
-      }
-      void print(const Item& item) {
-         if (item.type == ItemType::Pair)
-            print(item.pair);
-         else //should just be a Loop
-            print(item.loop);
-      }
-      void print(const Block& block, const bool block_name_only) {
-         std::cout << "---------------\nBlock:\t";
-         std::cout << block.name << std::endl;
-         if (!block_name_only) {
-            for (const Item& item : block.items) {
-               std::cout << "---------------\n";
-               print(item);
-            }
-         }
-         std::cout << "---------------\n" << std::endl;
-      }
-      void print(const Cif& cif, const bool block_name_only) {
-         std::cout << "###############\nCIF:\t";
-         std::cout << cif.source << std::endl;
-         for (const Block& block : cif.blocks) {
-            std::cout << "###############\n";
-            print(block, block_name_only);
-         }
-         std::cout << "###############\n" << std::endl;
-      }
+      void print(const std::string& s);
+      void print(const int s);
+      void print(const std::vector<std::string>& v);
+      void print(const Pair& p);
+      void print(const LoopPair& lp);
+      void print(const Loop& loop);
+      void print(const Item& item);
+      void print(const Block& block, const bool block_name_only);
+      void print(const Cif& cif, const bool block_name_only);
 
 
 

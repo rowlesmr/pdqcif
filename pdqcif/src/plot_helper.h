@@ -81,7 +81,7 @@ namespace row::cif::plot {
    }
    std::vector<double> offset(const double& s, const std::vector<double>& d) {
       std::vector<double> r;
-      offset(s, r);
+      offset(s, d, &r);
       return r;
    }
 

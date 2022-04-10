@@ -117,13 +117,13 @@
       <PreprocessorDefinitions>GLEW_STATIC;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>src\vendor;$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLEW\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Dependencies\GLFW\lib-vc2019;$(SolutionDir)Dependencies\GLEW\lib\Release\x64;src\vendor;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32s.lib;glfw3.lib;opengl32.lib;User32.lib;Gdi32.lib;Shell32.lib;</AdditionalDependencies>
+      <AdditionalDependencies>glew32s.lib;glfw3.lib;opengl32.lib;User32.lib;Gdi32.lib;Shell32.lib;ole32.lib;uuid.lib;</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -135,7 +135,7 @@
       <PreprocessorDefinitions>GLEW_STATIC;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>src\vendor;$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLEW\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -143,12 +143,14 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Dependencies\GLFW\lib-vc2019;$(SolutionDir)Dependencies\GLEW\lib\Release\x64;src\vendor;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32s.lib;glfw3.lib;opengl32.lib;User32.lib;Gdi32.lib;Shell32.lib;</AdditionalDependencies>
+      <AdditionalDependencies>glew32s.lib;glfw3.lib;opengl32.lib;User32.lib;Gdi32.lib;Shell32.lib;ole32.lib;uuid.lib;</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\cif.cpp" />
+    <ClCompile Include="src\cif_file.cpp" />
     <ClCompile Include="src\cif_transform.cpp" />
-    <ClCompile Include="src\test_main.cpp" />
     <ClCompile Include="src\vendor\glm\detail\glm.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_demo.cpp" />
@@ -160,9 +162,13 @@
     <ClCompile Include="src\vendor\implot\implot.cpp" />
     <ClCompile Include="src\vendor\implot\implot_demo.cpp" />
     <ClCompile Include="src\vendor\implot\implot_items.cpp" />
+    <ClCompile Include="src\vendor\nfd\nfd_win.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\cif.h" />
+    <ClInclude Include="src\cif_file.h" />
     <ClInclude Include="src\cif_transform.h" />
+    <ClInclude Include="src\plot_helper.h" />
     <ClInclude Include="src\vendor\glm\common.hpp" />
     <ClInclude Include="src\vendor\glm\detail\compute_common.hpp" />
     <ClInclude Include="src\vendor\glm\detail\compute_vector_relational.hpp" />
@@ -456,6 +462,8 @@
     <ClInclude Include="src\vendor\imgui\imstb_truetype.h" />
     <ClInclude Include="src\vendor\implot\implot.h" />
     <ClInclude Include="src\vendor\implot\implot_internal.h" />
+    <ClInclude Include="src\vendor\nfd\nfd.h" />
+    <ClInclude Include="src\vendor\nfd\nfd.hpp" />
     <ClInclude Include="src\vendor\tao\pegtl.hpp" />
     <ClInclude Include="src\vendor\tao\pegtl\apply_mode.hpp" />
     <ClInclude Include="src\vendor\tao\pegtl\argv_input.hpp" />
