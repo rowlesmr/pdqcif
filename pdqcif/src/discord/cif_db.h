@@ -151,7 +151,7 @@ namespace row {
 
         template<> struct Action<rules::quote_text> {
             template<typename Input> static void apply(const Input& in) {
-                print("quote_text: ", in);
+                //print("quote_text: ", in);
             }
         };
 
