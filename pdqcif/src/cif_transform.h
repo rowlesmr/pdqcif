@@ -239,6 +239,7 @@ namespace row::cif::transform {
       void transform();
 
      //principal methods
+      void remove_empties();
       void make_up_block_ids();
       void expand_multiple_dataloops();
       void group_block_names();
@@ -329,7 +330,6 @@ namespace row::cif::transform {
 } //end namespace row::cif::transform
 
 
-
-
 #endif
+
 

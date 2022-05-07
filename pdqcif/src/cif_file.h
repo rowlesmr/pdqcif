@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
 //#include <stdexcept>
 
@@ -38,6 +39,7 @@ namespace row {
       struct LoopPair {
          std::string tag{};
          std::vector<std::string> values{};
+         bool all_empty{ true };
 
          LoopPair() 
             : tag{ }, values{  } {}
@@ -126,11 +128,7 @@ namespace row {
          }
 
          bool remove_item(const std::string& t) {
-            size_t i = find_tag(t);
-            if (i == SIZE_MAX) return false;
-
-            lpairs.erase(lpairs.begin() + i);
-            return true;
+            return std::erase_if(lpairs, [&t](row::cif::LoopPair& lp) { return lp.has_tag(t); }) != 0;
          }
 
       };
@@ -308,12 +306,10 @@ namespace row {
          std::string name{};
          std::string pd_block_id{};
          std::vector<Item> items{};
-
-         Block(const std::string& name) 
-            : name{ name }, pd_block_id{ name }, items{} {}
-
-         Block(const Block& block)
-            :name{ block.name }, pd_block_id{ block.pd_block_id }, items{ block.items } {}
+         std::unordered_set<std::string> tags{};
+         
+         explicit Block(const std::string& name) 
+            : name{ name }, pd_block_id{ name } {}
 
          bool has_tag(const std::string& t) const {
             for (const Item& item : items) {
@@ -408,21 +404,20 @@ namespace row {
          std::vector<Block> blocks{};
          std::vector<Item>* items_ = nullptr; //this is used to point to the items in the current block
          std::string* blockcode_ = nullptr; // this points to the name of the current block
+         std::unordered_set<std::string> blockcodes{};
 
          const Block& get_block(std::string name) {
-            for (size_t i{ 0 }; i < blocks.size(); ++i) {
-               if (name == blocks[i].name) {
-                  return blocks[i];
-               }
+            for (const Block& block : blocks) {
+               if (block.name == name)
+                  return block;
             }
             throw std::out_of_range("Block not found.");
          }
 
          const Block& get_block_by_id(std::string id) {
-            for (size_t i{ 0 }; i < blocks.size(); ++i) {
-               if (id == blocks[i].pd_block_id) {
-                  return blocks[i];
-               }
+            for (const Block& block : blocks) {
+               if(block.pd_block_id == id)
+                  return block;
             }
             throw std::out_of_range("pd_block_id not found.");
          }
@@ -442,8 +437,8 @@ namespace row {
       void print(const LoopPair& lp);
       void print(const Loop& loop);
       void print(const Item& item);
-      void print(const Block& block, const bool block_name_only);
-      void print(const Cif& cif, const bool block_name_only);
+      void print(const Block& block, const bool print_all_values=true);
+      void print(const Cif& cif, const bool print_all_values = true);
 
 
 

@@ -6,7 +6,10 @@
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
-
+#include <algorithm> 
+#include <functional> 
+#include <cctype>
+#include <locale>
 #include "tao/pegtl.hpp"
 #include "tao/pegtl/contrib/trace.hpp"
 
@@ -48,7 +51,9 @@ namespace row {
          //AnyPrintChar:	OrdinaryChar | dquote | '#' | '$' | squote | '_' | SP | HT | ';' | '[' | ']'
          struct ordinarychar : pegtl::ranges<'!', '!', '%', '&', '(', ':', '<', 'Z', '\\', '\\', '^', '^', '`', '~'> {}; //not: ' " # $ _ ; [ ] SP HT
          struct nonblankchar : pegtl::range<'!', '~'> {};  //not: SP HT
+         struct textleadchar : pegtl::ranges<' ', ':', '<', '~', '\t'> {}; //all chars except ';'
          struct anyprintchar : pegtl::ranges<' ', '~', '\t'> {}; //ALL THE CHARS!!
+         struct ws : pegtl::one<' ', '\t'> {};
          struct wschar : pegtl::one<' ', '\t', '\n', '\r'> {};
 
          //Whitespace and comments
@@ -68,9 +73,23 @@ namespace row {
          //DoubleQuotedString WhiteSpace: double_quote AnyPrintChar* double_quote WhiteSpace
          //TextField                    : SemiColonTextField	
          //eol SemiColonTextField       : eol ';' { AnyPrintChar* eol { {TextLeadChar AnyPrintChar* } ? eol }* } ';'
+        
+
          struct field_sep : pegtl::seq<pegtl::bol, pegtl::one<';'>> {};
-         struct semicolontextfield : pegtl::if_must<field_sep, pegtl::until<field_sep>> {};
-         struct textfield : pegtl::sor<semicolontextfield> {};
+         struct end_field_sep : pegtl::seq<pegtl::plus<pegtl::eol>, field_sep> {};
+         //struct end_field_sep : field_sep {};
+         //struct end_field_sep : pegtl::seq<pegtl::seq<pegtl::star<ws>, pegtl::at<pegtl::eol>, pegtl::plus<pegtl::eol>>, field_sep> {};
+         //struct sctext : pegtl::until<pegtl::at<end_field_sep>> {};
+
+         //struct scfirstline : pegtl::star<anyprintchar> {};
+         //struct scotherline : pegtl::seq<textleadchar, pegtl::star<anyprintchar>> {};
+         //struct sctext : pegtl::seq<scfirstline, pegtl::eol, pegtl::star<pegtl::seq<pegtl::opt<scotherline>, pegtl::eol>>> {};
+         //struct sctext : pegtl::seq<scfirstline, pegtl::star<pegtl::seq<pegtl::eol, pegtl::opt<scotherline>>, pegtl::eol>> {};
+
+         struct semicolontextfield : pegtl::if_must<field_sep, pegtl::until<end_field_sep>> {};
+         struct textfield : semicolontextfield{};
+
+
          template<typename Q> //what is the end of a quoted string
          struct endq : pegtl::seq<Q, pegtl::at<pegtl::sor<pegtl::one<' ', '\n', '\r', '\t', '#'>, pegtl::eof>>> {};
          template <typename Q> //the entire tail of a quoted string
@@ -135,12 +154,16 @@ namespace row {
       } //end namespace rules
 
 
+
+
       //helper function to print information during debugging.
       template<typename Input>
       void print(const std::string&& s, const Input& in) {
          std::cout << s << in.string() << std::endl;
       }
 
+
+      std::ostream& writeString(std::ostream& out, std::string const& s);
 
       //********************
       // Parsing Actions to populate the values in the ciffile
@@ -183,8 +206,12 @@ namespace row {
             print("itemvalue: ", in);
             #else
             Item& item = out.items_->back();
-            assert(item.type == ItemType::Pair);
+            assert(item.is_pair());
             item.pair.value.emplace_back(in.string());
+
+            writeString(std::cout, in.string());
+            std::cout << std::endl;
+
             #endif
          }
       };
@@ -208,7 +235,7 @@ namespace row {
             print("looptag: ", in);
             #else
             Item& item = out.items_->back();
-            assert(item.type == ItemType::Loop);
+            assert(item.is_loop());
             item.loop.lpairs.emplace_back(in.string());
             #endif
          }
@@ -224,7 +251,7 @@ namespace row {
             print("loopvalue: ", in);
             #else
             Item& item = out.items_->back();
-            assert(item.type == ItemType::Loop);
+            assert(item.is_loop());
             Loop& loop = item.loop;
             loop.lpairs[loop.currentAppend].values.emplace_back(in.string());
             loop.currentAppend = ++loop.currentAppend % loop.lpairs.size();
@@ -243,7 +270,7 @@ namespace row {
             print("loopend. ", in);
             #else
             Item& item = out.items_->back();
-            assert(item.type == ItemType::Loop);
+            assert(item.is_loop());
             Loop& loop = item.loop;
             size_t should_be_zero = loop.totalValues % loop.lpairs.size();
             if (should_be_zero != 0) {

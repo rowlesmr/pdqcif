@@ -49,10 +49,10 @@ namespace row {
          else //should just be a Loop
             print(item.loop);
       }
-      void print(const Block& block, const bool block_name_only) {
+      void print(const Block& block, const bool print_all_values) {
          std::cout << "---------------\nBlock:\t";
          std::cout << block.name << std::endl;
-         if (!block_name_only) {
+         if (print_all_values) {
             for (const Item& item : block.items) {
                std::cout << "---------------\n";
                print(item);
@@ -60,12 +60,12 @@ namespace row {
          }
          std::cout << "---------------\n" << std::endl;
       }
-      void print(const Cif& cif, const bool block_name_only) {
+      void print(const Cif& cif, const bool print_all_values) {
          std::cout << "###############\nCIF:\t";
          std::cout << cif.source << std::endl;
          for (const Block& block : cif.blocks) {
             std::cout << "###############\n";
-            print(block, block_name_only);
+            print(block, print_all_values);
          }
          std::cout << "###############\n" << std::endl;
       }

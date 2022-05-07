@@ -2,7 +2,6 @@
 #include <cmath>
 //#include <format>
 #include <stdexcept>
-#include "cif.h"
 #include "cif_transform.h"
 
 
@@ -432,6 +431,7 @@ namespace row::cif::transform {
    }
 
    void File::transform() {
+      remove_empties();
       make_up_block_ids();
       expand_multiple_dataloops();
       group_block_names();
@@ -439,6 +439,36 @@ namespace row::cif::transform {
       get_nice_to_have_information();
       get_phase_info();
       calc_xaxis_d_q();
+   }
+
+
+
+
+   void File::remove_empties() {
+      for (row::cif::Block& block : cif.blocks) {
+         for (size_t i{ 0 }; i < block.items.size(); ++i) {
+            row::cif::Item& item = block.items[i];
+
+            if (item.is_pair()) {
+               std::string& tag = item.pair.tag;
+               std::vector<std::string>& value = item.pair.value;
+               if (std::all_of(value.cbegin(), value.cend(), [](const std::string& val) { return val == "." || val == "?"; })) {
+                  block.remove_tag(tag);
+                  --i;
+               }
+            }
+            else if (item.is_loop()) {
+               for (size_t j{ 0 }; j < item.loop.lpairs.size(); ++j) {
+                  std::string& tag = item.loop.lpairs[j].tag;
+                  std::vector<std::string>& value = item.loop.lpairs[j].values;
+                  if (std::all_of(value.cbegin(), value.cend(), [](const std::string& val) { return val == "." || val == "?"; })) {
+                     block.remove_tag(tag);
+                     --i;
+                  }
+               }
+            }
+         }
+      }
    }
 
 
